@@ -112,7 +112,7 @@ class Controls:
         if self.m.axis == 0:
             self.m.img_dcm = np.rot90(self.m.tensor[self.m.frame, :, :], axes=(1, 0))
         elif self.m.axis == 1:
-            self.m.img_dcm = np.rot90(self.m.tensor[:, self.m.frame, :], axes=(1, 0))
+            self.m.img_dcm = np.rot90(self.m.tensor[:, self.m.tensor.shape[1] - 1 - self.m.frame, :], axes=(1, 0))
         elif self.m.axis == 2:
             self.m.img_dcm = np.rot90(self.m.tensor[:, :, self.m.frame], k=2)
 
@@ -134,3 +134,4 @@ class Controls:
     def apply(self):
         self.m.img_result = self.m.img_result_copy
         self.v.reset_sliders()
+        self.m.point = None

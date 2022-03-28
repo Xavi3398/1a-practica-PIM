@@ -33,7 +33,7 @@ def get8n(point, shape):
     return neighbors
 
 
-def region_growing(img, origin):
+def iso_contour(img, origin):
     res = np.zeros(shape=img.shape, dtype=img.dtype)
     pending = [origin[::-1]]
     processed = set()

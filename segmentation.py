@@ -40,7 +40,7 @@ class Segmentation(ITab):
             img[img > 0] = 1
 
             # Region Growing
-            mask = region_growing(img, (x, y))
+            mask = iso_contour(img, (x, y))
 
             # Apply mask
             self.m.img_result_copy = self.m.img_result.copy()
