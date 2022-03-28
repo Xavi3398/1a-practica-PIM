@@ -33,6 +33,7 @@ class Model:
 
         # Segmentation
         self.point = None
+        self.color = (255, 0, 0)
 
     def get_aspect(self):
         if self.tensor is None:

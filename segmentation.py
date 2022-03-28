@@ -17,8 +17,9 @@ class Segmentation(ITab):
         ax.axis(False)
 
         if self.m.point is not None:
-            plt.plot(self.m.point[0], self.m.point[1], marker="o", markersize=10, markeredgecolor="red",
-                     markerfacecolor="red")
+            plt.plot(self.m.point[0], self.m.point[1], marker="o", markersize=5,
+                     markeredgecolor=np.array(self.m.color).astype('float')/255,
+                     markerfacecolor=np.array(self.m.color).astype('float')/255)
 
         fig.canvas.mpl_connect('button_press_event', self.segmentation_clicked_event)
 
@@ -57,7 +58,7 @@ class Segmentation(ITab):
             elif self.v.values["Gray_Type"]:
                 ax.imshow(self.m.img_result_copy, cmap="gray", aspect=self.m.get_aspect())
             elif self.v.values["Alpha_Type"]:
-                mask_r = color_mask(mask, [255, 0, 0])  # Red mask
+                mask_r = color_mask(mask, self.m.color)  # Red mask
                 rgb = cv2.cvtColor((self.m.img_result * 255).astype("uint8"), cv2.COLOR_GRAY2RGB)  # Gray image to RGB
                 ax.imshow(painter(rgb, mask_r, self.v.values["Slider_alpha"]),
                           aspect=self.m.get_aspect())  # Merge layers

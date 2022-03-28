@@ -5,6 +5,7 @@ from controls import *
 from model import *
 
 import PySimpleGUI as sg
+import matplotlib as plt
 
 
 if __name__ == "__main__":
@@ -81,5 +82,9 @@ if __name__ == "__main__":
 
         elif event == "Slider_up" or event == "Slider_down" or event == "Slider_right" or event == "Slider_left":
             c_c.cropping_slider_event(event)
+
+        elif event == "Color_Picker":
+            m.color = [int(c * 255) for c in plt.colors.to_rgb(v.popup_color_chooser())]
+            c.see_changes()
 
     v.window.close()
