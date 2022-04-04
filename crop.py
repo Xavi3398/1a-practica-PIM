@@ -46,11 +46,45 @@ class Crop(ITab):
 
         self.plot()
 
-    def see_changes(self):
+    def see_changes_changed_perspective(self):
+        self.see_changes(0, self.m.img_result.shape[1], 0, self.m.img_result.shape[0])
+
+    def see_changes(self, x1=None, x2=None, y1=None, y2=None):
 
         self.plot()
-        self.m.img_result_copy = self.m.img_result[int(self.v.values["Slider_up"]):int(self.v.values["Slider_down"]),
-                                                   int(self.v.values["Slider_left"]):int(self.v.values["Slider_right"])]
+
+        if x1 is None:
+            x1 = int(self.v.values["Slider_left"])
+            x2 = int(self.v.values["Slider_right"])
+            y1 = int(self.v.values["Slider_up"])
+            y2 = int(self.v.values["Slider_down"])
+
+        if self.m.tensor is None:  # 2D
+            self.m.img_result_copy = self.m.img_result[y1:y2, x1:x2]
+        else:  # 3D
+            if self.m.axis == 0:  # Front
+                x1_aux = x1
+                x2_aux = x2
+                x1 = y1
+                y1 = self.m.tensor_result.shape[1] - x1_aux
+                x2 = y2
+                y2 = self.m.tensor_result.shape[1] - x2_aux
+                self.m.tensor_result_copy = self.m.tensor_result[:, y2:y1, x1:x2]
+            elif self.m.axis == 1:  # End
+                x1_aux = x1
+                x2_aux = x2
+                x1 = y1
+                x2 = y2
+                y1 = self.m.tensor_result.shape[0] - x1_aux
+                y2 = self.m.tensor_result.shape[0] - x2_aux
+                self.m.tensor_result_copy = self.m.tensor_result[y2:y1, :, x1:x2]
+            else:  # Top
+                x1 = self.m.tensor_result.shape[1] - x1
+                x2 = self.m.tensor_result.shape[1] - x2
+                y1 = self.m.tensor_result.shape[0] - y1
+                y2 = self.m.tensor_result.shape[0] - y2
+                self.m.tensor_result_copy = self.m.tensor_result[y2:y1, x2:x1, :]
+            self.m.img_result_copy = get_slice(self.m.axis, self.m.frame, self.m.tensor_result_copy)
 
         # Plot
         fig = plt.figure(figsize=(5, 4))

@@ -23,6 +23,8 @@ class Controls:
 
         # Delete tensor if exists
         self.m.tensor = None
+        self.m.tensor_mask = None
+        self.m.img_mask = None
 
         # Get dcom aspect ratio
         self.m.dim_y = float(self.m.dcm["PixelSpacing"][0])
@@ -30,7 +32,7 @@ class Controls:
 
         # Get dcom image
         self.m.img_dcm = np.rot90(self.m.dcm.pixel_array, k=2)
-        self.m.img_result = self.m.img_dcm / np.max(self.m.img_dcm)
+        self.m.img_result = self.m.img_dcm
         self.m.img_result_copy = self.m.img_result
 
         # Plot image
@@ -51,14 +53,19 @@ class Controls:
         # Read files in folder
         for file in files:
             dcm = pydicom.dcmread(file)
-            imgs.append([dcm.pixel_array, dcm["InstanceNumber"].value])
+            imgs.append([dcm.pixel_array, dcm["SliceLocation"].value])
 
         # Order slices by instance number and get the ordered list of images
-        imgs = sorted(imgs, key=lambda t: t[1])
+        imgs = sorted(imgs, key=lambda t: t[1], reverse=True)
+        self.m.dim_z = float(abs(imgs[0][1] - imgs[1][1]))
         imgs = [img[0] for img in imgs]
 
         # Change order of axis (Y, X, Z) instead of (Z, Y, X)
         self.m.tensor = np.moveaxis(np.array(imgs), 0, -1)
+        self.m.tensor_result = self.m.tensor
+        self.m.tensor_result_copy = self.m.tensor
+        self.m.tensor_mask = None
+        self.m.img_mask = None
 
         # Load first frame
         self.m.dcm = pydicom.dcmread(files[0])
@@ -66,12 +73,11 @@ class Controls:
         # Get aspect ratio
         self.m.dim_y = float(self.m.dcm["PixelSpacing"][0])
         self.m.dim_x = float(self.m.dcm["PixelSpacing"][1])
-        self.m.dim_z = float(self.m.dcm["SliceThickness"].value)
 
         # Get img from file and rotate it
-        self.m.img_dcm = np.rot90(self.m.dcm.pixel_array, k=2)
-        self.m.img_result = self.m.img_dcm / np.max(self.m.img_dcm)
-        self.m.img_result_copy = self.m.img_result
+        self.m.img_dcm = get_slice(self.m.axis, self.m.frame, self.m.tensor)
+        self.m.img_result = self.m.img_dcm
+        self.m.img_result_copy = self.m.img_dcm
 
         # Plot image
         self.plot_original_image()
@@ -92,6 +98,18 @@ class Controls:
         plt.title('ORIGINAL IMAGE')
         self.m.in_img_plot = draw_figure(self.v.window["IMAGE-IN"].TKCanvas, fig, self.m.in_img_plot)
 
+    def update_frame_slider(self):
+
+        if self.v.values["Axis"] == 'Front':
+            axis = 0
+        elif self.v.values["Axis"] == 'End':
+            axis = 1
+        else:  # Top
+            axis = 2
+
+        # Update frame slider according to axis
+        self.v.window["Frame"].Update(range=(0, self.m.tensor_result.shape[axis] - 1))
+
     def change_axis(self):
 
         if self.v.values["Axis"] == 'Front':
@@ -102,36 +120,56 @@ class Controls:
             self.m.axis = 2
 
         # Update frame slider according to axis
-        self.v.window["Frame"].Update(range=(0, self.m.tensor.shape[self.m.axis] - 1))
+        self.v.window["Frame"].Update(range=(0, self.m.tensor_result.shape[self.m.axis] - 1))
 
     def change_frame(self):
-        self.m.frame = int(self.v.values["Frame"])
-
-    def refresh_image_tensor(self):
-
         if self.m.axis == 0:
-            self.m.img_dcm = np.rot90(self.m.tensor[self.m.frame, :, :], axes=(1, 0))
+            self.m.frame = int(self.v.values["Frame"])
         elif self.m.axis == 1:
-            self.m.img_dcm = np.rot90(self.m.tensor[:, self.m.tensor.shape[1] - 1 - self.m.frame, :], axes=(1, 0))
+            self.m.frame = self.m.tensor_result.shape[1] - 1 - int(self.v.values["Frame"])
         elif self.m.axis == 2:
-            self.m.img_dcm = np.rot90(self.m.tensor[:, :, self.m.frame], k=2)
+            self.m.frame = int(self.v.values["Frame"])
 
-        self.m.img_result = self.m.img_dcm / np.max(self.m.img_dcm)
+    def refresh_view(self):
+
+        self.change_axis()
+        self.change_frame()
+
+        self.m.img_dcm = get_slice(self.m.axis, self.m.frame, self.m.tensor_result)
+        self.m.img_result = self.m.img_dcm
         self.m.img_result_copy = self.m.img_dcm
 
         self.plot_original_image()
-        self.v.reset_sliders()
+        self.v.reset_crop_sliders()
         self.m.point = None
 
     def reset(self):
 
-        self.m.img_result = self.m.img_dcm / np.max(self.m.img_dcm)
-        self.m.img_result_copy = self.m.img_result
+        # Tensors
+        self.m.tensor_result = self.m.tensor
+        self.m.tensor_result_copy = self.m.tensor
 
-        # Point of segmentation
+        # Images
+        self.m.img_result = self.m.img_dcm
+        self.m.img_result_copy = self.m.img_dcm
+
+        self.v.reset_sliders()
+
+        # Segmentation
         self.m.point = None
+        self.m.tensor_mask = None
+        self.m.img_mask = None
 
     def apply(self):
+
+        # Tensors
+        self.m.tensor_result = self.m.tensor_result_copy
+
+        # Images
         self.m.img_result = self.m.img_result_copy
+
         self.v.reset_sliders()
+
         self.m.point = None
+        self.m.tensor_mask = None
+        self.m.img_mask = None

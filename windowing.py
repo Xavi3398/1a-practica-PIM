@@ -11,18 +11,27 @@ class Windowing(ITab):
 
     def plot(self):
 
-        if self.m.img_result is not None:
+        if self.m.dcm is not None:
 
-            # Histogram
-            hist = cv2.calcHist([(self.m.img_result * 100).astype('uint16')], [0], None, [101], (0, 101)).flatten()
+            # Calculate histogram
+            if self.m.tensor is not None:
+                hist, _ = np.histogram(self.m.tensor_result.flatten(), range=(0,4096), bins=100)
+                # hist = cv2.calcHist([self.m.tensor_result], [0], None, [101], (0, 4096)).flatten()
+            else:
+                hist, _ = np.histogram(self.m.img_result.flatten(), range=(0,4096), bins=100)
+                # hist = cv2.calcHist([self.m.img_result], [0], None, [101], (0, 4096)).flatten()
+
             fig = plt.figure(figsize=(5, 4))
+            # plt.title('Histogram')
             ax = fig.add_subplot(111)
-            ax.fill_between(range(101), hist, color='blue')
-            plt.xticks(range(0, 110, 10), ["{:.1f}".format(el) for el in np.arange(0, 1.1, .1)])
+            ax.fill_between(range(100), hist, color='blue')
+            plt.xticks(range(0, 110, 20), ["{:.0f}".format(el) for el in np.arange(-1024, 3071 + 4095/5, 4095/5)])
 
             # Deleted areas
-            ax.fill_between([0, int(self.v.values["Slider_min"] * 100)], [int(max(hist))] * 2, alpha=.3, color="red")
-            ax.fill_between([int(self.v.values["Slider_max"] * 100), 100], [int(max(hist))] * 2, alpha=.3, color="red")
+            ax.fill_between([0, int(from_hounsfield(self.v.values["Slider_min"]) * 100)], [int(max(hist))] * 2,
+                            alpha=.3, color="red")
+            ax.fill_between([int(from_hounsfield(self.v.values["Slider_max"]) * 100), 100], [int(max(hist))] * 2,
+                            alpha=.3, color="red")
 
             # Plot figure
             self.m.windowing_hist_plot = draw_figure(self.v.window["Histogram"].TKCanvas, fig,
@@ -42,20 +51,11 @@ class Windowing(ITab):
         # Update histogram
         self.plot()
 
-        # New minimum amb maximum values
-        min_s = self.v.values["Slider_min"]
-        max_s = self.v.values["Slider_max"]
-
-        # Iterate over pixels of image
-        self.m.img_result_copy = self.m.img_result.copy()
-        for y in range(self.m.img_result.shape[0]):
-            for x in range(self.m.img_result.shape[1]):
-                # self.m.img_result_copy[y, x] = (self.m.img_result[y, x] - min_s) * (1 - 0) / (max_s - min_s) + 0
-                self.m.img_result_copy[y, x] = (self.m.img_result[y, x] - min_s) / (max_s - min_s)
-
-        # Set values out of bounds
-        self.m.img_result_copy[self.m.img_result_copy < 0] = 0
-        self.m.img_result_copy[self.m.img_result_copy > 1] = 1
+        # Calc windowed tensor or img
+        if self.m.tensor is None:
+            self.windowing_2d()
+        else:
+            self.windowing_3d()
 
         # Plot
         fig = plt.figure(figsize=(5, 4))
@@ -64,3 +64,31 @@ class Windowing(ITab):
         plt.title('RESULTING IMAGE')
         ax.imshow(self.m.img_result_copy, cmap="gray", aspect=self.m.get_aspect())
         self.m.out_img_plot = draw_figure(self.v.window["IMAGE-OUT"].TKCanvas, fig, self.m.out_img_plot)
+
+    def windowing_2d(self):
+
+        # New minimum amb maximum values
+        min_s = self.v.values["Slider_min"] + 1024
+        max_s = self.v.values["Slider_max"] + 1024
+
+        # Compute for all image
+        self.m.img_result_copy = (self.m.img_result - min_s) * (3071 + 1024) / (max_s - min_s) + 0
+
+        # Set values out of bounds
+        self.m.img_result_copy[self.m.img_result_copy < 0] = 0
+        self.m.img_result_copy[self.m.img_result_copy > 4095] = 4095
+
+    def windowing_3d(self):
+
+        # New minimum amb maximum values
+        min_s = self.v.values["Slider_min"] + 1024  # From (-1024, 3071) to (0, 4095)
+        max_s = self.v.values["Slider_max"] + 1024  # From (-1024, 3071) to (0, 4095)
+
+        # Compute for all image. (Unit = Hounsfield)
+        self.m.tensor_result_copy = (self.m.tensor_result - min_s) * (3071 + 1024) / (max_s - min_s) + 0
+
+        # Set values out of bounds
+        self.m.tensor_result_copy[self.m.tensor_result_copy < 0] = 0
+        self.m.tensor_result_copy[self.m.tensor_result_copy > 4095] = 4095
+
+        self.m.img_result_copy = get_slice(self.m.axis, self.m.frame, self.m.tensor_result_copy)

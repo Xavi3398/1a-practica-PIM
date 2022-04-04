@@ -1,19 +1,22 @@
 class Model:
 
     def __init__(self):
+
         # Files
         self.file = None
         self.dcm = None
 
-        # Ranges
-        self.pixel_range = None
-        self.img_result_range = None
+        # Tensors
+        self.tensor = None
+        self.tensor_result = None
+        self.tensor_result_copy = None
+        self.tensor_mask = None
 
         # Images
-        self.tensor = None
         self.img_dcm = None
         self.img_result_copy = None
         self.img_result = None
+        self.img_mask = None
 
         # Plots
         self.in_img_plot = None

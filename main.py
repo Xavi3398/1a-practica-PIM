@@ -55,27 +55,33 @@ if __name__ == "__main__":
 
         # See changes
         elif event == "See_changes" and m.img_dcm is not None:
-            c.see_changes()
+            if v.tab == "Segmentation":
+                c.calc_segmentation()
+            else:
+                c.see_changes()
 
         # Apply changes
         elif event == "Apply":
             c.see_changes()
             if v.tab != "Segmentation":
                 cc.apply()
+            c.plot()
 
         elif event == "Reset":
             cc.reset()
+            if m.tensor is not None:
+                cc.refresh_view()
             c.see_changes()
-
-        elif event == "Frame":
-            cc.change_frame()
 
         elif event == "Axis":
-            cc.change_axis()
+            cc.update_frame_slider()
 
         elif event == "Tensor_Change":
-            cc.refresh_image_tensor()
-            c.see_changes()
+            cc.refresh_view()
+            if v.tab == "Crop":
+                c.see_changes_changed_perspective()
+            else:
+                c.see_changes()
 
         elif event == "Slider_min" or event == "Slider_max":
             c_w.windowing_slider_event(event)

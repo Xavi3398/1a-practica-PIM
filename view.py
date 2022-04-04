@@ -36,11 +36,11 @@ class View:
         windowing_layout = [
             [sg.Canvas(key="Histogram", pad=(50, 10))],
             [sg.Text("Min:", pad=((50, 0), (0, 0))),
-             sg.Slider(key="Slider_min", default_value=0, pad=(30, 0), size=(43, 15), orientation="horizontal",
-                       range=(0, 1), resolution=0.01, enable_events=True)],
+             sg.Slider(key="Slider_min", default_value=-1024, pad=(30, 0), size=(43, 15), orientation="horizontal",
+                       range=(-1024, 3071), resolution=1, enable_events=True)],
             [sg.Text("Max:", pad=((50, 0), (5, 5))),
-             sg.Slider(key="Slider_max", default_value=1, pad=(26, 5), size=(43, 15), orientation="horizontal",
-                       range=(0, 1), resolution=0.01, enable_events=True)]
+             sg.Slider(key="Slider_max", default_value=3071, pad=(26, 5), size=(43, 15), orientation="horizontal",
+                       range=(-1024, 3071), resolution=1, enable_events=True)]
         ]
 
         # Cropping
@@ -62,15 +62,14 @@ class View:
         segmentation_layout = [
             [sg.Canvas(key="Segmentation_Canvas", pad=(50, 10))],
             [sg.Text("Threshold:", pad=((50, 0), (0, 0))),
-             sg.Slider(key="Slider_segmentation", default_value=0.1, pad=(26, 5), size=(43, 15),
-                       orientation="horizontal",
-                       range=(0, 1), resolution=0.01, enable_events=True)],
-            [sg.Text("Type of image:", pad=((50, 0), (10, 0))),
-             sg.Radio("BW mask", "Image_Type", key="BW_Type", default=False, pad=((10, 0), (10, 0))),
-             sg.Radio("Gray mask", "Image_Type", key="Gray_Type", default=False, pad=((10, 0), (10, 0))),
-             sg.Radio("Alpha mask", "Image_Type", key="Alpha_Type", default=True, pad=((10, 0), (10, 0)))],
+             sg.Slider(key="Slider_segmentation", default_value=100, pad=(26, 5), size=(43, 15),
+                       orientation="horizontal", range=(0, 4095), resolution=1, enable_events=True)],
+            [sg.Text("Type of segmentation:", pad=((50, 0), (10, 0))),
+             sg.Radio("Threshold", "Seg_type", key="thresh", default=False, pad=((10, 0), (10, 0))),
+             sg.Radio("Weak Connection", "Seg_type", key="thresh_weak", default=False, pad=((10, 0), (10, 0))),
+             sg.Radio("Strong Connection", "Seg_type", key="thresh_strong", default=True, pad=((10, 0), (10, 0)))],
             [sg.Text("Alpha:", pad=((50, 0), (0, 0))),
-             sg.Slider(key="Slider_alpha", default_value=0.2, pad=(26, 5), size=(35, 15), orientation="horizontal",
+             sg.Slider(key="Slider_alpha", default_value=0.3, pad=(26, 5), size=(35, 15), orientation="horizontal",
                        range=(0, 1), resolution=0.01, enable_events=True),
              sg.Button("Color Picker", key="Color_Picker")]
         ]
@@ -108,12 +107,14 @@ class View:
         self.window = sg.Window("Image Viewer", layout, return_keyboard_events=True)
 
     def reset_sliders(self):
+        self.reset_windowing_sliders()
+        self.reset_crop_sliders()
 
-        # Sliders of windowing tab
-        self.window['Slider_min'].Update(value=0)
-        self.window["Slider_max"].Update(value=1)
+    def reset_windowing_sliders(self):
+        self.window['Slider_min'].Update(value=-1024)
+        self.window["Slider_max"].Update(value=3071)
 
-        # Sliders of cropping tab
+    def reset_crop_sliders(self):
         self.window["Slider_up"].Update(range=(0, self.m.img_result.shape[0]), value=0)
         self.window["Slider_down"].Update(range=(0, self.m.img_result.shape[0]), value=self.m.img_result.shape[0])
         self.window["Slider_left"].Update(range=(0, self.m.img_result.shape[1]), value=0)
@@ -123,7 +124,12 @@ class View:
         self.window["Frame"].Update(value=0)
         self.window["Axis"].Update(value='Top')
 
-    def popup_color_chooser(self, look_and_feel = None):
+    def show_alert_message(self, message):
+        sg.Popup(message, keep_on_top=True)
+
+    # Popup color chooser taken from here:
+    # https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Color_Chooser_Custom.py
+    def popup_color_chooser(self, look_and_feel=None):
         """
         :return: Any(str, None) Returns hex string of color chosen or None if nothing was chosen
         """
