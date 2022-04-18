@@ -92,7 +92,6 @@ def connected_thresh(img, origin, method="3d_close"):
     t1 = time.time()
     res = np.zeros(shape=img.shape, dtype=img.dtype)
     processed = set()
-    counter = 0
 
     # Check number of dimensions and set neighbors method
     if img.ndim == 2:
@@ -122,7 +121,6 @@ def connected_thresh(img, origin, method="3d_close"):
 
         point = pending.pop(0)
         res[point] = 1
-        counter += 1
 
         # Add neighbors
         for p in get_neighbors(point, img.shape, points):
